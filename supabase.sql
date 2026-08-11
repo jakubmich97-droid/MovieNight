@@ -25,6 +25,8 @@ create table if not exists public.titles (
   seen_kuba boolean not null default false,
   seen_partner boolean not null default false,
   favorite boolean not null default false,
+  rating_kuba numeric(3,1) check (rating_kuba between 1 and 10),
+  rating_partner numeric(3,1) check (rating_partner between 1 and 10),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint correct_media_fields check ((type = 'movie' and seasons is null) or (type = 'series' and runtime is null))
@@ -40,6 +42,8 @@ alter table public.titles add column if not exists collection_id bigint;
 alter table public.titles add column if not exists collection_name text;
 alter table public.titles add column if not exists collection_poster_path text;
 alter table public.titles add column if not exists collection_checked boolean not null default false;
+alter table public.titles add column if not exists rating_kuba numeric(3,1) check (rating_kuba between 1 and 10);
+alter table public.titles add column if not exists rating_partner numeric(3,1) check (rating_partner between 1 and 10);
 create index if not exists titles_type_idx on public.titles(type);
 create index if not exists titles_genre_idx on public.titles(genre);
 create index if not exists titles_collection_idx on public.titles(collection_id) where collection_id is not null;
@@ -60,4 +64,29 @@ create policy "MovieNight update" on public.titles for update to anon, authentic
 create policy "MovieNight delete" on public.titles for delete to anon, authenticated using (true);
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on public.titles to anon, authenticated;
-do $$ begin alter publication supabase_realtime add table public.titles; exception when duplicate_object then null; end $$;
+do $ begin alter publication supabase_realtime add table public.titles; exception when duplicate_object then null; end $;
+
+-- Potvrzené večerní výběry a jejich stav.
+create table if not exists public.draw_history (
+  id uuid primary key default gen_random_uuid(),
+  title_id uuid references public.titles(id) on delete set null,
+  title_snapshot text not null,
+  type text not null check (type in ('movie','series')),
+  poster_path text,
+  chosen_at timestamptz not null default now(),
+  watched boolean not null default false,
+  watched_at timestamptz
+);
+create index if not exists draw_history_chosen_idx on public.draw_history(chosen_at desc);
+alter table public.draw_history enable row level security;
+drop policy if exists "MovieNight history read" on public.draw_history;
+drop policy if exists "MovieNight history insert" on public.draw_history;
+drop policy if exists "MovieNight history update" on public.draw_history;
+drop policy if exists "MovieNight history delete" on public.draw_history;
+create policy "MovieNight history read" on public.draw_history for select to anon, authenticated using (true);
+create policy "MovieNight history insert" on public.draw_history for insert to anon, authenticated with check (true);
+create policy "MovieNight history update" on public.draw_history for update to anon, authenticated using (true) with check (true);
+create policy "MovieNight history delete" on public.draw_history for delete to anon, authenticated using (true);
+grant select, insert, update, delete on public.draw_history to anon, authenticated;
+do $ begin alter publication supabase_realtime add table public.draw_history; exception when duplicate_object then null; end $;
+

@@ -10,6 +10,10 @@ create table if not exists public.titles (
   poster_path text,
   overview text not null default '',
   vote_average numeric(4,2),
+  collection_id bigint,
+  collection_name text,
+  collection_poster_path text,
+  collection_checked boolean not null default false,
   genre text not null,
   genre_secondary text,
   year integer check (year between 1888 and 2100),
@@ -32,8 +36,13 @@ alter table public.titles add column if not exists original_title text;
 alter table public.titles add column if not exists poster_path text;
 alter table public.titles add column if not exists overview text not null default '';
 alter table public.titles add column if not exists vote_average numeric(4,2);
+alter table public.titles add column if not exists collection_id bigint;
+alter table public.titles add column if not exists collection_name text;
+alter table public.titles add column if not exists collection_poster_path text;
+alter table public.titles add column if not exists collection_checked boolean not null default false;
 create index if not exists titles_type_idx on public.titles(type);
 create index if not exists titles_genre_idx on public.titles(genre);
+create index if not exists titles_collection_idx on public.titles(collection_id) where collection_id is not null;
 create index if not exists titles_created_at_idx on public.titles(created_at desc);
 create unique index if not exists titles_tmdb_unique_idx on public.titles(type, tmdb_id) where tmdb_id is not null;
 create or replace function public.set_updated_at() returns trigger language plpgsql security invoker set search_path = public as $$

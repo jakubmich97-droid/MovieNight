@@ -5,6 +5,11 @@ create table if not exists public.titles (
   id uuid primary key default gen_random_uuid(),
   type text not null check (type in ('movie','series')),
   title text not null check (char_length(title) between 1 and 120),
+  tmdb_id bigint,
+  original_title text,
+  poster_path text,
+  overview text not null default '',
+  vote_average numeric(4,2),
   genre text not null,
   genre_secondary text,
   year integer check (year between 1888 and 2100),
@@ -22,9 +27,15 @@ create table if not exists public.titles (
 );
 -- Bezpečná migrace pro projekty, kde už byla spuštěna verze 1.
 alter table public.titles add column if not exists genre_secondary text;
+alter table public.titles add column if not exists tmdb_id bigint;
+alter table public.titles add column if not exists original_title text;
+alter table public.titles add column if not exists poster_path text;
+alter table public.titles add column if not exists overview text not null default '';
+alter table public.titles add column if not exists vote_average numeric(4,2);
 create index if not exists titles_type_idx on public.titles(type);
 create index if not exists titles_genre_idx on public.titles(genre);
 create index if not exists titles_created_at_idx on public.titles(created_at desc);
+create unique index if not exists titles_tmdb_unique_idx on public.titles(type, tmdb_id) where tmdb_id is not null;
 create or replace function public.set_updated_at() returns trigger language plpgsql security invoker set search_path = public as $$
 begin new.updated_at = now(); return new; end; $$;
 drop trigger if exists titles_set_updated_at on public.titles;

@@ -1,0 +1,19 @@
+{
+  "name": "MovieNight",
+  "short_name": "MovieNight",
+  "description": "Společný výběr filmů a seriálů pro Kubu a Iry.",
+  "start_url": "./#top",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0b0d",
+  "theme_color": "#0b0b0d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

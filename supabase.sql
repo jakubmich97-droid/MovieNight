@@ -64,7 +64,11 @@ create policy "MovieNight update" on public.titles for update to anon, authentic
 create policy "MovieNight delete" on public.titles for delete to anon, authenticated using (true);
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on public.titles to anon, authenticated;
-do $ begin alter publication supabase_realtime add table public.titles; exception when duplicate_object then null; end $;
+do 'begin
+  alter publication supabase_realtime add table public.titles;
+exception when duplicate_object then
+  null;
+end';
 
 -- Potvrzené večerní výběry a jejich stav.
 create table if not exists public.draw_history (
@@ -88,5 +92,9 @@ create policy "MovieNight history insert" on public.draw_history for insert to a
 create policy "MovieNight history update" on public.draw_history for update to anon, authenticated using (true) with check (true);
 create policy "MovieNight history delete" on public.draw_history for delete to anon, authenticated using (true);
 grant select, insert, update, delete on public.draw_history to anon, authenticated;
-do $ begin alter publication supabase_realtime add table public.draw_history; exception when duplicate_object then null; end $;
+do 'begin
+  alter publication supabase_realtime add table public.draw_history;
+exception when duplicate_object then
+  null;
+end';
 

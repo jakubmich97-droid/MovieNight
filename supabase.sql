@@ -98,3 +98,39 @@ exception when duplicate_object then
   null;
 end';
 
+-- Swipe místnosti pro současný výběr na dvou telefonech.
+-- Místnost automaticky vyprší po dvou hodinách.
+create table if not exists public.swipe_rooms (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique check (code ~ '^[0-9]{6}$'),
+  media_type text not null check (media_type in ('movie','series')),
+  candidate_ids uuid[] not null check (cardinality(candidate_ids) between 1 and 10),
+  host_likes uuid[] not null default '{}',
+  guest_likes uuid[] not null default '{}',
+  guest_joined boolean not null default false,
+  host_done boolean not null default false,
+  guest_done boolean not null default false,
+  result_id uuid references public.titles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '2 hours'),
+  updated_at timestamptz not null default now()
+);
+create index if not exists swipe_rooms_code_idx on public.swipe_rooms(code);
+create index if not exists swipe_rooms_expires_idx on public.swipe_rooms(expires_at);
+drop trigger if exists swipe_rooms_set_updated_at on public.swipe_rooms;
+create trigger swipe_rooms_set_updated_at before update on public.swipe_rooms for each row execute function public.set_updated_at();
+alter table public.swipe_rooms enable row level security;
+drop policy if exists "MovieNight rooms read" on public.swipe_rooms;
+drop policy if exists "MovieNight rooms insert" on public.swipe_rooms;
+drop policy if exists "MovieNight rooms update" on public.swipe_rooms;
+drop policy if exists "MovieNight rooms delete" on public.swipe_rooms;
+create policy "MovieNight rooms read" on public.swipe_rooms for select to anon, authenticated using (true);
+create policy "MovieNight rooms insert" on public.swipe_rooms for insert to anon, authenticated with check (true);
+create policy "MovieNight rooms update" on public.swipe_rooms for update to anon, authenticated using (true) with check (true);
+create policy "MovieNight rooms delete" on public.swipe_rooms for delete to anon, authenticated using (expires_at < now());
+grant select, insert, update, delete on public.swipe_rooms to anon, authenticated;
+do 'begin
+  alter publication supabase_realtime add table public.swipe_rooms;
+exception when duplicate_object then
+  null;
+end';
